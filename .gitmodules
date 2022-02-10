@@ -1,0 +1,8 @@
+[submodule "deps/internal/protos"]
+	path = deps/protos
+	url = git@github.com:Interstellar-Network/protos.git
+	branch = main
+[submodule "deps/lib_circuits"]
+	path = deps/lib_circuits
+	url = git@github.com:Interstellar-Network/lib_circuits.git
+	branch = initial

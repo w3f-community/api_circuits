@@ -1,0 +1,30 @@
+[package]
+name = "lib-circuits-wrapper"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cxx = "1.0"
+
+[build-dependencies]
+cxx-build = "1.0"
+cmake = "0.1"
+glob = "0.3.0"
+
+[dev-dependencies]
+tempfile = "3.3.0"
+
+[lib]
+name = "lib_circuits_wrapper"
+# DO NOT use staticlib; that prevents from using this crate from circuits_routes.rs etc
+# crate-type = ["cdylib", "lib"]
+
+[features]
+# TODO(rust) no_std
+default = ['std']
+std = [
+    # 'sp-std/std',
+]

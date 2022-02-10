@@ -1,0 +1,59 @@
+# [workspace]
+# # TODO fix or remove? this looks like it compiles with rust-cxx twice (which kinda makes sense)
+# #  fix: move all into api/ to have to top levels folder: api/ and lib_circuits_wrapper/
+# members = [
+#     ".",
+#     # error: package `lib-circuits-wrapper` cannot be tested because it requires dev-dependencies and is not a member of the workspace
+#     "./lib_circuits_wrapper"
+# ]
+
+[package]
+name = "api_circuits"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tonic = "0.6"
+tonic-web = "0.2"
+prost = "0.9"
+futures-core = "0.3"
+futures-util = "0.3"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio-stream = "0.1"
+
+async-stream = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = "0.7"
+
+log = "0.4"
+tempfile = "3.3.0"
+
+tracing-subscriber = "0.3.9"
+
+# A recent version is required for the Send trait else
+# "the trait `Send` is not implemented for `dyn Future<Output = Result<AddResponse, ipfs_api_backend_hyper::Error>>`"
+# https://github.com/ferristseng/rust-ipfs-api/issues/90
+# ipfs-api-backend-hyper = "0.3"
+ipfs-api-backend-hyper = { git = "https://github.com/ferristseng/rust-ipfs-api.git", rev = "094728f40f7640fce288ac3ffc1a61bcade5326a", features = [ "with-send-sync" ] }
+
+lib-circuits-wrapper = { path = "lib_circuits_wrapper/" }
+
+[build-dependencies]
+tonic-build = "0.6"
+
+[dev-dependencies]
+hyper = "0.14"
+bytes = "^1.1.0"
+# cf https://github.com/rs-ipfs/rust-ipfs/blob/master/Cargo.toml
+# Needed for tests/foreign_ipfs.rs
+libp2p = { default-features = false, features = ["floodsub", "identify", "kad", "tcp-tokio", "mplex", "noise", "ping", "yamux", "dns-tokio"], version = "0.39.1" }
+base64 = { default-features = false, features = ["alloc"], version = "0.13" }
+anyhow = "1.0"
+
+# add "net", needed for tests to use "tokio_stream::wrappers::TcpListenerStream"
+[dev-dependencies.tokio-stream]
+version = "0.1"
+features = ["net"]

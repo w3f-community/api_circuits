@@ -1,0 +1,9 @@
+/target
+
+# tests
+/blocks
+/streams
+
+# VSCode
+/.history
+/.vscode
