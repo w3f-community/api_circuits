@@ -5,12 +5,14 @@
 // use ipfs_embed::{Config, DefaultParams, Ipfs};
 use bytes::Buf;
 use bytes::BufMut;
+use ipfs_api_backend_hyper::IpfsApi;
+use ipfs_api_backend_hyper::TryFromUri;
 use prost::Message;
+use std::io::Cursor;
 use std::{net::SocketAddr, time::Duration};
 use tokio::net::TcpListener;
 use tonic::{transport::Server, Code, Request, Response, Status};
 
-// mod circuits_routes;
 use api_circuits::circuits_routes::{self, interstellarpbapicircuits::SkcdDisplayReply};
 
 mod foreign_ipfs;
@@ -20,13 +22,13 @@ pub mod interstellarpbapicircuits {
 }
 
 #[tokio::test]
-async fn endpoint_generate_circuit_protobuf() {
+async fn endpoint_generate_display_protobuf() {
     let foreign_node = run_ipfs_in_background().await;
     let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
     let addr = run_service_in_background(
         Duration::from_secs(1),
         Duration::from_secs(100),
-        ipfs_server_multiaddr,
+        &ipfs_server_multiaddr,
     )
     .await;
 
@@ -51,7 +53,7 @@ async fn endpoint_generate_circuit_protobuf() {
     // assert!(ok.message.contains("OK"));
     // TODO better check
     assert_eq!(
-        resp.get_ref().hash.len(),
+        resp.get_ref().skcd_cid.len(),
         "Qmf1rtki74jvYmGeqaaV51hzeiaa6DyWc98fzDiuPatzyy".len()
     );
 }
@@ -104,13 +106,13 @@ async fn decode_body(body: hyper::Body, content_type: &str) -> (SkcdDisplayReply
 // TODO WARNING verilog code is NOT thread safe! MUST be run test by test
 //  cargo test -- --test-threads=1
 #[tokio::test]
-async fn endpoint_generate_circuit_grpc_web() {
+async fn endpoint_generate_display_grpc_web() {
     let foreign_node = run_ipfs_in_background().await;
     let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
     let addr = run_service_in_background(
         Duration::from_secs(1),
         Duration::from_secs(100),
-        ipfs_server_multiaddr,
+        &ipfs_server_multiaddr,
     )
     .await;
 
@@ -139,96 +141,70 @@ async fn endpoint_generate_circuit_grpc_web() {
     assert_eq!(res.status(), hyper::StatusCode::OK);
     let (reply, trailers) = decode_body(res.into_body(), content_type).await;
     assert_eq!(
-        reply.hash.len(),
+        reply.skcd_cid.len(),
         "Qmf1rtki74jvYmGeqaaV51hzeiaa6DyWc98fzDiuPatzyy".len()
     );
     assert_eq!(&trailers[..], b"grpc-status:0\r\n");
 }
 
-// #[tokio::test]
-// async fn picks_server_timeout_if_thats_sorter() {
-//     let addr = run_service_in_background(Duration::from_secs(1), Duration::from_millis(100)).await;
+#[tokio::test]
+async fn endpoint_generate_generic_protobuf() {
+    let foreign_node = run_ipfs_in_background().await;
+    let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
+    let addr = run_service_in_background(
+        Duration::from_secs(1),
+        Duration::from_secs(100),
+        &ipfs_server_multiaddr,
+    )
+    .await;
 
-//     let mut client = test_client::TestClient::connect(format!("http://{}", addr))
-//         .await
-//         .unwrap();
+    // read a verilog test file
+    let verilog_data = std::fs::read_to_string("./tests/data/adder.v").unwrap();
+    // let verilog_data = std::fs::read("./tests/data/adder.v").unwrap();
 
-//     let mut req = Request::new(Input {});
-//     req.metadata_mut()
-//         // 10 hours
-//         .insert("grpc-timeout", "10H".parse().unwrap());
+    // insert a basic Verilog (.v) in IPFS
+    let ipfs_client =
+        ipfs_api_backend_hyper::IpfsClient::from_multiaddr_str(&ipfs_server_multiaddr).unwrap();
+    let verilog_cursor = Cursor::new(verilog_data);
+    // "ApiError { message: "Invalid byte while expecting start of value: 0x2f", code: 0 }"
+    // let ipfs_result = ipfs_client.dag_put(verilog_cursor).await.unwrap();
+    let ipfs_result = ipfs_client.add(verilog_cursor).await.unwrap();
 
-//     let res = client.unary_call(req).await;
-//     let err = res.unwrap_err();
-//     assert!(err.message().contains("Timeout expired"));
-//     assert_eq!(err.code(), Code::Cancelled);
-// }
+    let mut client = interstellarpbapicircuits::skcd_api_client::SkcdApiClient::connect(format!(
+        "http://{}",
+        addr
+    ))
+    .await
+    .unwrap();
 
-// #[tokio::test]
-// async fn picks_client_timeout_if_thats_sorter() {
-//     let addr = run_service_in_background(Duration::from_secs(1), Duration::from_secs(100)).await;
+    let mut req = Request::new(interstellarpbapicircuits::SkcdGenericFromIpfsRequest {
+        verilog_cid: ipfs_result.hash,
+    });
+    req.metadata_mut()
+        // TODO less than 5000 ms!
+        .insert("grpc-timeout", "5000m".parse().unwrap());
 
-//     let mut client = test_client::TestClient::connect(format!("http://{}", addr))
-//         .await
-//         .unwrap();
+    let res = client.generate_skcd_generic_from_ipfs(req).await;
 
-//     let mut req = Request::new(Input {});
-//     req.metadata_mut()
-//         // 100 ms
-//         .insert("grpc-timeout", "100m".parse().unwrap());
-
-//     let res = client.unary_call(req).await;
-//     let err = res.unwrap_err();
-//     assert!(err.message().contains("Timeout expired"));
-//     assert_eq!(err.code(), Code::Cancelled);
-// }
+    let resp = res.unwrap();
+    // assert!(ok.message.contains("OK"));
+    // TODO better check
+    assert_eq!(
+        resp.get_ref().skcd_cid.len(),
+        "Qmf1rtki74jvYmGeqaaV51hzeiaa6DyWc98fzDiuPatzyy".len()
+    );
+}
 
 async fn run_service_in_background(
     latency: Duration,
     server_timeout: Duration,
-    ipfs_server_multiaddr: String,
+    ipfs_server_multiaddr: &str,
 ) -> SocketAddr {
-    // struct Svc {
-    //     latency: Duration,
-    // }
-
-    // #[tonic::async_trait]
-    // impl interstellarpbapicircuits::circuits_api_server::CircuitsApi for Svc {
-    //     async fn unary_call(&self, _req: Request<Input>) -> Result<Response<Output>, Status> {
-    //         tokio::time::sleep(self.latency).await;
-    //         Ok(Response::new(Output {}))
-    //     }
-    // }
-
-    // let svc =
-    //     interstellarpbapicircuits::circuits_api_server::CircuitsApiServer::new(Svc { latency });
-
-    // let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    // let addr = listener.local_addr().unwrap();
-
-    // tokio::spawn(async move {
-    //     Server::builder()
-    //         .timeout(server_timeout)
-    //         .add_service(svc)
-    //         .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
-    //         .await
-    //         .unwrap();
-    // });
-
-    // tokio::spawn(async move {
-    //     Server::builder()
-    //         .timeout(server_timeout)
-    //         .add_service(svc)
-    //         .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
-    //         .await
-    //         .unwrap();
-    // });
-
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
     let circuits_api = circuits_routes::SkcdApiServerImpl {
-        ipfs_server_multiaddr: ipfs_server_multiaddr,
+        ipfs_server_multiaddr: ipfs_server_multiaddr.to_string(),
     };
     let circuits_api =
         circuits_routes::interstellarpbapicircuits::skcd_api_server::SkcdApiServer::new(

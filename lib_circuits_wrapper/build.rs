@@ -103,7 +103,9 @@ fn main() {
 
     // TODO? but careful, we MUST recompile if the .cpp, the .h or any included .h is modified
     // and using rerun-if-changed=src/lib.rs make it NOT do that
-    // println!("cargo:rerun-if-changed=src/lib.rs");
-    // println!("cargo:rerun-if-changed=src/src/rust_wrapper.h");
-    // println!("cargo:rerun-if-changed=src/src/rust_wrapper.cpp");
+    println!("cargo:rerun-if-changed=src/lib.rs");
+    println!("cargo:rerun-if-changed=src/rust_wrapper.h");
+    println!("cargo:rerun-if-changed=src/rust_wrapper.cpp");
+    println!("cargo:rerun-if-changed=../deps/lib_circuits/src/");
+    println!("cargo:rerun-if-changed=build.rs");
 }

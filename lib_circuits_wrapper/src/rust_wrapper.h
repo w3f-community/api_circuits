@@ -17,7 +17,9 @@ public:
   // TODO not const, but will certainly break Rust's no_std CXX side():
   // self: Pin<&mut GenerateDisplaySkcdWrapper>,
   //  ^^^ could not find `std` in the list of imported crates
-  void GenerateDisplaySkcd(rust::Str output_skcd_path, uint32_t width, uint32_t height) const;
+  rust::Vec<u_int8_t> GenerateDisplaySkcd(uint32_t width, uint32_t height) const;
+
+  rust::Vec<u_int8_t> GenerateGenericSkcd(rust::Str verilog_input_path) const;
 
 private:
   // TODO dynamic

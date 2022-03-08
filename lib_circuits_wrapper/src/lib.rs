@@ -33,24 +33,15 @@ pub mod ffi {
         type GenerateDisplaySkcdWrapper;
 
         fn new_circuit_gen_wrapper() -> UniquePtr<GenerateDisplaySkcdWrapper>;
-        fn GenerateDisplaySkcd(&self, output_skcd_path: &str, width: u32, height: u32);
+        // DO NOT return a cxx:String b/c those MUST contain valid UTF8/16
+        // and the returned buffer DO NOT (they are protobuf bin)
+        // Same with return: &str, String
+        // terminate called after throwing an instance of 'std::invalid_argument'
+        //   what():  data for rust::Str is not utf-8
+        fn GenerateDisplaySkcd(&self, width: u32, height: u32) -> Vec<u8>;
+        fn GenerateGenericSkcd(&self, verilog_input_path: &str) -> Vec<u8>;
     }
 }
-
-// // An iterator over contiguous chunks of a discontiguous file object. Toy
-// // implementation uses a Vec<Vec<u8>> but in reality this might be iterating
-// // over some more complex Rust data structure like a rope, or maybe loading
-// // chunks lazily from somewhere.
-// pub struct MultiBuf {
-//     chunks: Vec<Vec<u8>>,
-//     pos: usize,
-// }
-
-// pub fn next_chunk(buf: &mut MultiBuf) -> &[u8] {
-//     let next = buf.chunks.get(buf.pos);
-//     buf.pos += 1;
-//     next.map_or(&[], Vec::as_slice)
-// }
 
 #[cfg(test)]
 mod tests {

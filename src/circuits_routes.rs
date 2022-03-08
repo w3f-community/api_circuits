@@ -1,20 +1,15 @@
-use ipfs_api_backend_hyper::{Error, TryFromUri};
-use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
-// use ipfs_embed::{Config, DefaultParams, Ipfs};
+use futures_util::TryStreamExt;
+use ipfs_api_backend_hyper::{IpfsApi, IpfsClient, TryFromUri};
 use log;
-use std::fs::File;
 use std::io::Cursor;
-use std::io::{Read, Seek, SeekFrom, Write};
 use tempfile::Builder;
 use tonic::{Request, Response, Status};
 
 use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
-use interstellarpbapicircuits::{SkcdDisplayReply, SkcdDisplayRequest};
-
-use lib_circuits_wrapper::cxx::UniquePtr;
-use lib_circuits_wrapper::ffi;
-use lib_circuits_wrapper::ffi::GenerateDisplaySkcdWrapper;
+use interstellarpbapicircuits::{
+    SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
+};
 
 pub mod interstellarpbapicircuits {
     tonic::include_proto!("interstellarpbapicircuits");
@@ -45,27 +40,20 @@ impl SkcdApi for SkcdApiServerImpl {
         &self,
         request: Request<SkcdDisplayRequest>,
     ) -> Result<Response<SkcdDisplayReply>, Status> {
-        log::info!("Got a request from {:?}", request.remote_addr());
+        log::info!(
+            "generate_skcd_display request from {:?}",
+            request.remote_addr()
+        );
         let width = request.get_ref().width;
         let height = request.get_ref().height;
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
-            let tmp_dir = Builder::new()
-                .prefix("interstellar-circuit_routes")
-                .tempdir()
-                .unwrap();
-
-            let file_path = tmp_dir.path().join("output.skcd.pb.bin");
-
             let wrapper = lib_circuits_wrapper::ffi::new_circuit_gen_wrapper();
 
-            // TODO make the C++ API return a buffer?
-            wrapper.GenerateDisplaySkcd(file_path.as_os_str().to_str().unwrap(), width, height);
+            let skcd_pb_buf = wrapper.GenerateDisplaySkcd(width, height);
 
-            let contents = std::fs::read(file_path).expect("Something went wrong reading the file");
-
-            contents
+            skcd_pb_buf
         })
         .await
         .unwrap();
@@ -76,7 +64,71 @@ impl SkcdApi for SkcdApiServerImpl {
         let ipfs_result = self.ipfs_client().add(data).await.unwrap();
 
         let reply = SkcdDisplayReply {
-            hash: format!("{}", ipfs_result.hash),
+            skcd_cid: format!("{}", ipfs_result.hash),
+        };
+
+        Ok(Response::new(reply))
+    }
+
+    async fn generate_skcd_generic_from_ipfs(
+        &self,
+        request: Request<SkcdGenericFromIpfsRequest>,
+    ) -> Result<Response<SkcdGenericFromIpfsReply>, Status> {
+        log::info!(
+            "generate_skcd_generic_from_ipfs request from {:?}",
+            request.remote_addr()
+        );
+
+        let verilog_cid = &request.get_ref().verilog_cid;
+
+        // get the Verilog (.v) from IPFS
+        // DO NOT use dag_get if the file was "add"
+        // The returned bytes would be eg
+        // {"Data":{"/":{"bytes":"CAISjgQvL....ZfYWRkGI4E"}},"Links":[]}
+        // let verilog_buf = self
+        //     .ipfs_client()
+        //     .dag_get(&verilog_cid)
+        //     .map_ok(|chunk| chunk.to_vec())
+        //     .try_concat()
+        //     .await
+        //     .unwrap();
+        let verilog_buf = self
+            .ipfs_client()
+            .cat(&verilog_cid)
+            .map_ok(|chunk| chunk.to_vec())
+            .try_concat()
+            .await
+            .unwrap();
+
+        // write the buffer to a file in /tmp
+        // yosys/abc REQUIRE file b/c they are basically cli
+        // so either write it on Rust side, or send as std::string to C++ and write it there
+        let tmp_dir = Builder::new()
+            .prefix("interstellar-circuit_routes-generate_skcd_generic_from_ipfs")
+            .tempdir()
+            .unwrap();
+        let verilog_file_path = tmp_dir.path().join("input.v");
+        std::fs::write(&verilog_file_path, verilog_buf).expect("could not write");
+
+        // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
+        let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
+            let wrapper = lib_circuits_wrapper::ffi::new_circuit_gen_wrapper();
+
+            let skcd_pb_buf =
+                wrapper.GenerateGenericSkcd(verilog_file_path.as_os_str().to_str().unwrap());
+
+            skcd_pb_buf
+        })
+        .await
+        .unwrap();
+
+        let data = Cursor::new(lib_circuits_wrapper);
+
+        // TODO error handling, or at least logging
+        let ipfs_result = self.ipfs_client().add(data).await.unwrap();
+
+        let reply = SkcdGenericFromIpfsReply {
+            skcd_cid: format!("{}", ipfs_result.hash),
         };
 
         Ok(Response::new(reply))
