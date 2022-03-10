@@ -32,6 +32,7 @@ log = "0.4"
 tempfile = "3.3.0"
 
 tracing-subscriber = "0.3.9"
+clap = { version = "3.1.6", features = ["derive"] }
 
 # A recent version is required for the Send trait else
 # "the trait `Send` is not implemented for `dyn Future<Output = Result<AddResponse, ipfs_api_backend_hyper::Error>>`"
