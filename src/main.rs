@@ -7,6 +7,10 @@ mod circuits_routes;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
+    /// address:port the server will be listening on
+    #[clap(long, default_value = "0.0.0.0:3000")]
+    bind_addr_port: String,
+
     /// Where to reach the IPFS node
     #[clap(long, default_value = "/ip4/127.0.0.1/tcp/5001")]
     ipfs_server_multiaddr: String,
@@ -20,9 +24,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args = Args::parse();
 
-    // TODO configurable port
-    let addr = "0.0.0.0:3000".parse().unwrap();
-
     let circuits_api = circuits_routes::SkcdApiServerImpl {
         ipfs_server_multiaddr: args.ipfs_server_multiaddr,
     };
@@ -35,7 +36,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .allow_origins(vec!["127.0.0.1"])
         .enable(circuits_api);
 
-    println!("GreeterServer listening on {}", addr);
+    let addr = args.bind_addr_port.parse().unwrap();
+    println!("Server listening on {}", addr);
 
     Server::builder()
         .accept_http1(true)
