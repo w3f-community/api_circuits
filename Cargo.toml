@@ -38,7 +38,7 @@ clap = { version = "3.1.6", features = ["derive"] }
 # "the trait `Send` is not implemented for `dyn Future<Output = Result<AddResponse, ipfs_api_backend_hyper::Error>>`"
 # https://github.com/ferristseng/rust-ipfs-api/issues/90
 # ipfs-api-backend-hyper = "0.3"
-ipfs-api-backend-hyper = { git = "https://github.com/ferristseng/rust-ipfs-api.git", rev = "094728f40f7640fce288ac3ffc1a61bcade5326a", features = [ "with-send-sync" ] }
+ipfs-api-backend-hyper = { git = "https://github.com/ferristseng/rust-ipfs-api.git", rev = "094728f40f7640fce288ac3ffc1a61bcade5326a", features = [ "with-send-sync" , "with-builder" ] }
 
 lib-circuits-wrapper = { path = "lib_circuits_wrapper/" }
 
