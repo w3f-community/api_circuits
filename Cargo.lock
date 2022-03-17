@@ -752,12 +752,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glob"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
-
-[[package]]
 name = "h2"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1073,7 +1067,7 @@ dependencies = [
  "cmake",
  "cxx",
  "cxx-build",
- "glob",
+ "rust-cxx-cmake-bridge",
 ]
 
 [[package]]
@@ -2069,6 +2063,11 @@ dependencies = [
  "web-sys",
  "winapi",
 ]
+
+[[package]]
+name = "rust-cxx-cmake-bridge"
+version = "0.1.0"
+source = "git+https://github.com/Interstellar-Network/rust-cxx-cmake-bridge.git#2236064d88a1e72897f77b2ecbeecab3402c4c6d"
 
 [[package]]
 name = "rustc_version"

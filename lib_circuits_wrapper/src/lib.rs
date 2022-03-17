@@ -16,31 +16,10 @@
 // https://github.com/substrate-developer-hub/substrate-module-template/blob/master/HOWTO.md#forgetting-cfg_attr-for-no_std
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// extern crate std;
-
-// extern crate alloc;
-// extern crate sp_std;
-
-// TODO simplify; but something is needed to avoid
-// Vec<u8>;
-//    |  ^^^ could not find `std` in the list of imported crates
-// use sp_std::{
-//     marker::PhantomData,
-//     ops::{Deref, DerefMut},
-//     prelude::*,
-// };
-// use sp_std::vec::Vec;
-
 pub use cxx;
 
 #[cxx::bridge]
 pub mod ffi {
-    // extern "Rust" {
-    //     type MultiBuf;
-
-    //     fn next_chunk(buf: &mut MultiBuf) -> &[u8];
-    // }
-
     unsafe extern "C++" {
         include!("lib-circuits-wrapper/src/rust_wrapper.h");
 
@@ -63,7 +42,6 @@ mod tests {
     use std::fs::File;
     use tempfile::Builder;
 
-    // TODO fix undefined reference to `GenerateSegmentedDigitCache()' aaa
     #[test]
     fn generate_display_skcd_basic() {
         let circuit_gen_wrapper = ffi::new_circuit_gen_wrapper();
