@@ -1,12 +1,13 @@
-/target
+# whitelist instead of blacklist
+# that way COPY is properly cached which is useful when dev/testing the dockerfile
 
-# tests
-/blocks
-/streams
+# Ignore everything
+*
 
-# VSCode
-/.history
-/.vscode
-
-# temporary for Dockerfile_M1.dockerfile
-!/target/install/
+# Allow files and folders with a pattern starting with !
+!/build.rs
+!/Cargo.lock
+!/Cargo.toml
+!/src/
+!/deps/
+!/lib_circuits_wrapper/
