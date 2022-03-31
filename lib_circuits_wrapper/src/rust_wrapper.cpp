@@ -20,12 +20,19 @@
 
 GenerateDisplaySkcdWrapper::GenerateDisplaySkcdWrapper() {}
 
-rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t width, uint32_t height) const
+rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t width, uint32_t height,
+                                                                    // DisplayDigitType digit_type,
+                                                                    // const rust::Vec<BBox> &digits_bboxes
+                                                                    const rust::Vec<float> &digits_bboxes) const
 {
-  auto buf_str = interstellar::CircuitPipeline::GenerateDisplaySkcd(width, height);
-  // std::vector<uint8_t> vec(buf_str.begin(), buf_str.end());
-  // return vec;
-  // return buf_str;
+  std::vector<std::tuple<float, float, float, float>> digits_bboxes_copy{
+      {digits_bboxes[0], digits_bboxes[1],
+       digits_bboxes[2], digits_bboxes[3]},
+  };
+  auto buf_str = interstellar::circuits::GenerateDisplaySkcd(width, height,
+                                                             interstellar::circuits::DisplayDigitType::seven_segments_png,
+                                                             std::move(digits_bboxes_copy));
+
   rust::Vec<u_int8_t> vec;
   std::copy(buf_str.begin(), buf_str.end(), std::back_inserter(vec));
   return vec;
@@ -33,7 +40,7 @@ rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t wid
 
 rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateGenericSkcd(rust::Str verilog_input_path) const
 {
-  auto buf_str = interstellar::CircuitPipeline::GenerateSkcd({
+  auto buf_str = interstellar::circuits::GenerateSkcd({
       std::string(verilog_input_path),
   });
   // std::vector<uint8_t> vec(buf_str.begin(), buf_str.end());

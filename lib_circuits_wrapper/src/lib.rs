@@ -20,18 +20,49 @@ pub use cxx;
 
 #[cxx::bridge]
 pub mod ffi {
+    // MUST match /lib_circuits/src/circuit_lib.h
+    enum DisplayDigitType {
+        SevenSegmentsPng,
+    }
+
+    /// rust-cxx does NOT support Tuples(ie Vec<(f32, f32, f32, f32)>)
+    /// so instead we use a shared struct
+    struct BBox {
+        lower_left_corner_x: f32,
+        lower_left_corner_y: f32,
+        upper_right_corner_x: f32,
+        upper_right_corner_y: f32,
+    }
+
     unsafe extern "C++" {
         include!("lib-circuits-wrapper/src/rust_wrapper.h");
 
         type GenerateDisplaySkcdWrapper;
 
         fn new_circuit_gen_wrapper() -> UniquePtr<GenerateDisplaySkcdWrapper>;
-        // DO NOT return a cxx:String b/c those MUST contain valid UTF8/16
-        // and the returned buffer DO NOT (they are protobuf bin)
-        // Same with return: &str, String
-        // terminate called after throwing an instance of 'std::invalid_argument'
-        //   what():  data for rust::Str is not utf-8
-        fn GenerateDisplaySkcd(&self, width: u32, height: u32) -> Vec<u8>;
+
+        /// Returns a person with the name given them
+        ///
+        /// # Arguments
+        ///
+        /// * `digits_bboxes` - a list of BBox, one per digit
+        /// passed as
+        /// (lower_left_corner.x, lower_left_corner.y,
+        /// upper_right_corner.x, upper_right_corner.y)
+        ///
+        /// DO NOT return a cxx:String b/c those MUST contain valid UTF8/16
+        /// and the returned buffer DO NOT (they are protobuf bin)
+        /// Same with return: &str, String
+        /// terminate called after throwing an instance of 'std::invalid_argument'
+        ///   what():  data for rust::Str is not utf-8
+        fn GenerateDisplaySkcd(
+            &self,
+            width: u32,
+            height: u32,
+            // digit_type: DisplayDigitType,
+            // digits_bboxes: &Vec<BBox>,
+            digits_bboxes: &Vec<f32>,
+        ) -> Vec<u8>;
         fn GenerateGenericSkcd(&self, verilog_input_path: &str) -> Vec<u8>;
     }
 }
@@ -57,11 +88,11 @@ mod tests {
         let file_path = tmp_dir.path().join("output.skcd.pb.bin");
 
         // TODO make the C++ API return a buffer?
-        circuit_gen_wrapper.GenerateDisplaySkcd(
-            file_path.as_os_str().to_str().unwrap(),
-            width,
-            height,
-        );
+        // circuit_gen_wrapper.GenerateDisplaySkcd(
+        //     file_path.as_os_str().to_str().unwrap(),
+        //     width,
+        //     height,
+        // );
 
         // TODO test file_path size? just exists?
         assert!(file_path.exists());
