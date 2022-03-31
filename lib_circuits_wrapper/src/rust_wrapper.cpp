@@ -20,12 +20,28 @@
 
 GenerateDisplaySkcdWrapper::GenerateDisplaySkcdWrapper() {}
 
-rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t width, uint32_t height) const
+rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t width, uint32_t height,
+                                                                    // DisplayDigitType digit_type,
+                                                                    // const rust::Vec<BBox> &digits_bboxes
+                                                                    const rust::Vec<float> &digits_bboxes) const
 {
-  auto buf_str = interstellar::CircuitPipeline::GenerateDisplaySkcd(width, height);
-  // std::vector<uint8_t> vec(buf_str.begin(), buf_str.end());
-  // return vec;
-  // return buf_str;
+  // CHECK: digits_bboxes SHOULD be a list ob bboxes, passed as (x1,y1,x2,y2)
+  size_t digits_bboxes_size = digits_bboxes.size();
+  if (!digits_bboxes_size % 4)
+  {
+    throw std::invalid_argument("GenerateDisplaySkcd: digits_bboxes must be a list of bboxes(ie size == mod 4)");
+  }
+  std::vector<std::tuple<float, float, float, float>> digits_bboxes_copy;
+  digits_bboxes_copy.reserve(digits_bboxes_size / 4);
+  for (uint32_t i = 0; i < digits_bboxes_size; i += 4)
+  {
+    digits_bboxes_copy.emplace_back(digits_bboxes[i], digits_bboxes[i + 1],
+                                    digits_bboxes[i + 2], digits_bboxes[i + 3]);
+  }
+  auto buf_str = interstellar::circuits::GenerateDisplaySkcd(width, height,
+                                                             interstellar::circuits::DisplayDigitType::seven_segments_png,
+                                                             std::move(digits_bboxes_copy));
+
   rust::Vec<u_int8_t> vec;
   std::copy(buf_str.begin(), buf_str.end(), std::back_inserter(vec));
   return vec;
@@ -33,7 +49,7 @@ rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t wid
 
 rust::Vec<u_int8_t> GenerateDisplaySkcdWrapper::GenerateGenericSkcd(rust::Str verilog_input_path) const
 {
-  auto buf_str = interstellar::CircuitPipeline::GenerateSkcd({
+  auto buf_str = interstellar::circuits::GenerateSkcd({
       std::string(verilog_input_path),
   });
   // std::vector<uint8_t> vec(buf_str.begin(), buf_str.end());
