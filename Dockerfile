@@ -62,8 +62,6 @@ RUN cat $(find target/release/ -type f -name cmake_generated_libs) | tr " " "\n"
     rm list_local_shared_libs \
     || echo "no shared libs to copy" && touch /usr/local/lib/no_shared_lib_to_copy
 
-ADD lib_circuits_wrapper/deps/lib_circuits/data /data/
-
 ################################################################################
 
 FROM ubuntu:20.04
@@ -83,7 +81,7 @@ RUN apt-get update && apt-get install -y libpng-dev libreadline-dev libtcl && rm
 COPY --from=builder /usr/local/lib/no_shared_lib_to_copy /usr/local/lib/*.so /usr/local/lib/
 COPY --from=builder /usr/local/cargo/bin/$APP_NAME /usr/local/bin/$APP_NAME
 # TODO use CMake install and DO NOT hardcode a path
-COPY --from=builder /data /home/pratn/Documents/interstellar/api_circuits/deps/lib_circuits/data/
+COPY --from=builder /usr/src/app/lib_circuits_wrapper/deps/lib_circuits/data /usr/src/app/lib_circuits_wrapper/deps/lib_circuits/data/
 # that is really ugly; we MUST fix some lib SONAME/path
 # TODO TOREMOVE?
 # RUN mv /usr/local/lib/libglog.so.0.6.0 /usr/local/lib/libglog.so.1
