@@ -1,0 +1,36 @@
+name: Install CMake, Build then Test
+
+on:
+  push:
+
+jobs:
+  # TODO split test and lint; but that REQUIRE caching else recompile from scratch in between
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      # install build dependencies
+      # MUST match the same step in Dockerfile
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y
+          libboost-filesystem-dev
+
+      - name: install "internal" dependencies
+        # MUST match /lib_circuits/.github/workflows/cpp.yml
+        run: |
+          wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.15-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb
+          sudo apt-get install -y --no-install-recommends ./yosys.deb
+          wget https://github.com/Interstellar-Network/abc/releases/download/0.0.1/abc-0.1.1-Linux.deb -O abc.deb
+          sudo apt-get install -y --no-install-recommends ./abc.deb
+
+      - uses: Interstellar-Network/gh-actions/prepare@v1.0.0
+        with:
+          ssh_key_input: ${{ secrets.SSH_KEY_MACHINE_USER_INTERSTELLAR_CI }}
+          install_cmake_and_ninja: true
+
+      - uses: Interstellar-Network/gh-actions/prepare_rust@v1.0.0
+
+      - uses: Interstellar-Network/gh-actions/rust-lint@v1.0.0
+
+      - uses: Interstellar-Network/gh-actions/install-go-ipfs@v1.0.0
+
+      - uses: Interstellar-Network/gh-actions/rust-build-and-test@v1.0.0

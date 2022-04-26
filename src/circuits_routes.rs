@@ -16,14 +16,13 @@ use futures_util::TryStreamExt;
 use ipfs_api_backend_hyper::{
     BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
 };
-use log;
 use std::io::Cursor;
 use std::time::Duration;
 use tempfile::Builder;
 use tonic::{Request, Response, Status};
 
 use interstellarpbapicircuits::skcd_api_server::SkcdApi;
-use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
+pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
 };
@@ -80,9 +79,8 @@ impl SkcdApi for SkcdApiServerImpl {
                 // second digit bbox -------------------------------------------
                 0.55_f32, 0.1_f32, 0.75_f32, 0.9_f32,
             ];
-            let skcd_pb_buf = wrapper.GenerateDisplaySkcd(width, height, &digits_bboxes);
 
-            skcd_pb_buf
+            wrapper.GenerateDisplaySkcd(width, height, &digits_bboxes)
         })
         .await
         .unwrap();
@@ -93,7 +91,7 @@ impl SkcdApi for SkcdApiServerImpl {
         let ipfs_result = self.ipfs_client().add(data).await.unwrap();
 
         let reply = SkcdDisplayReply {
-            skcd_cid: format!("{}", ipfs_result.hash),
+            skcd_cid: ipfs_result.hash,
         };
 
         Ok(Response::new(reply))
@@ -123,7 +121,7 @@ impl SkcdApi for SkcdApiServerImpl {
         //     .unwrap();
         let verilog_buf = self
             .ipfs_client()
-            .cat(&verilog_cid)
+            .cat(verilog_cid)
             .map_ok(|chunk| chunk.to_vec())
             .try_concat()
             .await
@@ -157,7 +155,7 @@ impl SkcdApi for SkcdApiServerImpl {
         let ipfs_result = self.ipfs_client().add(data).await.unwrap();
 
         let reply = SkcdGenericFromIpfsReply {
-            skcd_cid: format!("{}", ipfs_result.hash),
+            skcd_cid: ipfs_result.hash,
         };
 
         Ok(Response::new(reply))

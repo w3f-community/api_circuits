@@ -7,39 +7,23 @@
 # b/c docker build has no support for volume contrary to podman/buildah
 # docker run -it --name api_circuits --rm -p 3000:3000 --env RUST_LOG="warn,info,debug" api_circuits:dev /usr/local/bin/api_circuits --ipfs-server-multiaddr /ip4/172.17.0.1/tcp/5001
 
-FROM rust:1.59 as builder
+FROM ghcr.io/interstellar-network/ci-images/ci-base-rust:dev as builder
 
 WORKDIR /usr/src/app
-
-# prereq: install CMake
-ENV PATH=$PATH:/opt/cmake/bin/
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3-linux-x86_64.sh && \
-    chmod +x cmake-3.22.3-linux-x86_64.sh && \
-    mkdir /opt/cmake/ && \
-    ./cmake-3.22.3-linux-x86_64.sh --skip-license --prefix=/opt/cmake/ && \
-    rm cmake-*.sh && \
-    cmake -version
-
-# prereq: install Ninja (ninja-build)
-RUN wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip && \
-    unzip ninja-linux.zip -d /usr/local/bin/ && \
-    rm ninja-linux.zip && \
-    ninja --version
 
 # "error: 'rustfmt' is not installed for the toolchain '1.59.0-x86_64-unknown-linux-gnu'"
 RUN rustup component add rustfmt
 
+# TODO install yosys.deb + abc.deb
+# cf .github/workflows/rust.yml "Install dependencies" and "install "internal" dependencies"
 RUN apt-get update && apt-get install -y \
-    bison \
-    flex \
-    libreadline-dev \
-    libtcl \
-    tcl8.6-dev \
-    tcl-dev \
-    tk8.6-dev \
-    tk-dev \
-    libboost-filesystem-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libboost-filesystem-dev && \
+    wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.15-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb && \
+    sudo apt-get install -y --no-install-recommends ./yosys.deb && \
+    wget https://github.com/Interstellar-Network/abc/releases/download/0.0.1/abc-0.1.1-Linux.deb -O abc.deb && \
+    sudo apt-get install -y --no-install-recommends ./abc.deb && \
+    rm -rf /var/lib/apt/lists/*  && \
+    rm ./yosys.deb ./abc.deb
 
 COPY . .
 RUN cargo install --path .
@@ -79,6 +63,8 @@ RUN apt-get update && apt-get install -y libpng-dev libreadline-dev libtcl && rm
 # "copier: stat: ["/usr/local/lib/*.so"]: no such file or directory"
 # cf https://stackoverflow.com/questions/31528384/conditional-copy-add-in-dockerfile
 COPY --from=builder /usr/local/lib/no_shared_lib_to_copy /usr/local/lib/*.so /usr/local/lib/
+# TODO use ldd and make that fully dynamic?
+COPY --from=builder /usr/lib/libyosys.so /usr/lib/libabc.so /usr/lib/
 COPY --from=builder /usr/local/cargo/bin/$APP_NAME /usr/local/bin/$APP_NAME
 # TODO use CMake install and DO NOT hardcode a path
 COPY --from=builder /usr/src/app/lib_circuits_wrapper/deps/lib_circuits/data /usr/src/app/lib_circuits_wrapper/deps/lib_circuits/data/
