@@ -49,19 +49,26 @@ pub mod common {
         pub fn new() -> ForeignNode {
             use std::{io::Read, net::SocketAddr, str};
 
+            // try with "ipfs" from PATH, and if not found try using env var GO_IPFS_PATH
             // this environment variable should point to the location of the foreign ipfs binary
             // #[cfg(feature = "test_go_interop")]
             const ENV_IPFS_PATH: &str = "GO_IPFS_PATH";
             // #[cfg(feature = "test_js_interop")]
             // const ENV_IPFS_PATH: &str = "JS_IPFS_PATH";
-
-            // obtain the path of the foreign ipfs binary from an environment variable
-            let binary_path = env::vars()
-                .find(|(key, _val)| key == ENV_IPFS_PATH)
-                .unwrap_or_else(|| {
-                    panic!("the {} environment variable was not found", ENV_IPFS_PATH)
-                })
-                .1;
+            let binary_path = match Command::new("ipfs").stdout(Stdio::null()).spawn() {
+                Ok(_) => "ipfs".to_string(),
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        env::vars()
+                            .find(|(key, _val)| key == ENV_IPFS_PATH)
+                            .unwrap_or_else(|| {
+                                panic!("the {} environment variable was not found", ENV_IPFS_PATH)
+                            })
+                            .1
+                    }
+                    _ => panic!("spawning ipfs failed"),
+                },
+            };
 
             // create the temporary directory for the repo etc
             let mut tmp_dir = env::temp_dir();
