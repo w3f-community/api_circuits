@@ -56,6 +56,12 @@ async fn endpoint_generate_display_protobuf() {
     let mut req = Request::new(interstellarpbapicircuits::SkcdDisplayRequest {
         width: 224,
         height: 96,
+        digits_bboxes: vec![
+            // first digit bbox --------------------------------------------
+            0.25_f32, 0.1_f32, 0.45_f32, 0.9_f32,
+            // second digit bbox -------------------------------------------
+            0.55_f32, 0.1_f32, 0.75_f32, 0.9_f32,
+        ],
     });
     req.metadata_mut()
         // TODO less than 5000 ms!
@@ -82,6 +88,12 @@ fn encode_body(width: u32, height: u32) -> bytes::Bytes {
     let input = interstellarpbapicircuits::SkcdDisplayRequest {
         width: width,
         height: height,
+        digits_bboxes: vec![
+            // first digit bbox --------------------------------------------
+            0.25_f32, 0.1_f32, 0.45_f32, 0.9_f32,
+            // second digit bbox -------------------------------------------
+            0.55_f32, 0.1_f32, 0.75_f32, 0.9_f32,
+        ],
     };
 
     let mut buf = bytes::BytesMut::with_capacity(1024);

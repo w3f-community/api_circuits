@@ -68,17 +68,11 @@ impl SkcdApi for SkcdApiServerImpl {
         );
         let width = request.get_ref().width;
         let height = request.get_ref().height;
+        let digits_bboxes = request.get_ref().digits_bboxes.clone();
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
             let wrapper = lib_circuits_wrapper::ffi::new_circuit_gen_wrapper();
-
-            let digits_bboxes = vec![
-                // first digit bbox --------------------------------------------
-                0.25_f32, 0.1_f32, 0.45_f32, 0.9_f32,
-                // second digit bbox -------------------------------------------
-                0.55_f32, 0.1_f32, 0.75_f32, 0.9_f32,
-            ];
 
             wrapper.GenerateDisplaySkcd(width, height, &digits_bboxes)
         })
