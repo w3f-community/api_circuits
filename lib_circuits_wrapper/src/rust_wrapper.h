@@ -18,8 +18,10 @@
 
 #include <memory>
 
-// #include "lib-circuits-wrapper/src/lib.rs.h"
 #include "rust/cxx.h"
+
+// rust-cxx shared struct
+struct SkcdAndMetadata;
 
 /**
  * Wrapper around interstellar::CircuitPipeline::GenerateDisplaySkcd
@@ -32,10 +34,10 @@ public:
   // TODO not const, but will certainly break Rust's no_std CXX side():
   // self: Pin<&mut GenerateDisplaySkcdWrapper>,
   //  ^^^ could not find `std` in the list of imported crates
-  rust::Vec<u_int8_t> GenerateDisplaySkcd(uint32_t width, uint32_t height,
-                                          // DisplayDigitType digit_type,
-                                          // const rust::Vec<BBox> &digits_bboxes
-                                          const rust::Vec<float> &digits_bboxes) const;
+  SkcdAndMetadata GenerateDisplaySkcd(uint32_t width, uint32_t height,
+                                      // DisplayDigitType digit_type,
+                                      // const rust::Vec<BBox> &digits_bboxes
+                                      const rust::Vec<float> &digits_bboxes) const;
 
   rust::Vec<u_int8_t> GenerateGenericSkcd(rust::Str verilog_input_path) const;
 

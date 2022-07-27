@@ -34,6 +34,15 @@ pub mod ffi {
         upper_right_corner_y: f32,
     }
 
+    struct SkcdAndMetadata {
+        skcd_buffer: Vec<u8>,
+        // NOTE: ideally we would map directy eg
+        // skcd_config: std::collections::HashMap<&str, u32>,
+        // but "std::collections::HashMap<&str, u32>,  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsupported type" for now
+        // So we map the field directly
+        skcd_config_nb_digits: u32,
+    }
+
     unsafe extern "C++" {
         include!("lib-circuits-wrapper/src/rust_wrapper.h");
 
@@ -41,10 +50,6 @@ pub mod ffi {
 
         fn new_circuit_gen_wrapper() -> UniquePtr<GenerateDisplaySkcdWrapper>;
 
-        /// Returns a person with the name given them
-        ///
-        /// # Arguments
-        ///
         /// * `digits_bboxes` - a list of BBox, one per digit
         /// passed as
         /// (lower_left_corner.x, lower_left_corner.y,
@@ -55,6 +60,10 @@ pub mod ffi {
         /// Same with return: &str, String
         /// terminate called after throwing an instance of 'std::invalid_argument'
         ///   what():  data for rust::Str is not utf-8
+        ///
+        /// return:
+        /// * `Vec<u8>` ie a serialized skcd.pb.bin
+        /// * config: corresponding to the skcd.pb.bin's config field
         fn GenerateDisplaySkcd(
             &self,
             width: u32,
@@ -62,7 +71,7 @@ pub mod ffi {
             // digit_type: DisplayDigitType,
             // digits_bboxes: &Vec<BBox>,
             digits_bboxes: &Vec<f32>,
-        ) -> Vec<u8>;
+        ) -> SkcdAndMetadata;
         fn GenerateGenericSkcd(&self, verilog_input_path: &str) -> Vec<u8>;
     }
 }

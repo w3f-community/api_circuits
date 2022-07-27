@@ -25,6 +25,7 @@ use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
+    SkcdServerMetadata,
 };
 
 pub mod interstellarpbapicircuits {
@@ -79,13 +80,16 @@ impl SkcdApi for SkcdApiServerImpl {
         .await
         .unwrap();
 
-        let data = Cursor::new(lib_circuits_wrapper);
+        let data = Cursor::new(lib_circuits_wrapper.skcd_buffer);
 
         // TODO error handling, or at least logging
         let ipfs_result = self.ipfs_client().add(data).await.unwrap();
 
         let reply = SkcdDisplayReply {
             skcd_cid: ipfs_result.hash,
+            server_metadata: Some(SkcdServerMetadata {
+                nb_digits: lib_circuits_wrapper.skcd_config_nb_digits,
+            }),
         };
 
         Ok(Response::new(reply))
