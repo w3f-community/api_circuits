@@ -41,52 +41,6 @@ fn main() {
     // which causes to recompile from scratch every time(for eg a simple comment added in lib.rs)
     cmake_config.always_configure(false); // TODO always_configure
 
-    // Use ccache/sccache based on the value of RUSTC_WRAPPER
-    // NOTE: the logic is really basic but it works for our purposes(ie our CI and local dev)
-    // TODO move this into custom crate(in same repo than rust_cxx_cmake_bridge?)
-    // let rustc_wrapper = std::env::var("RUSTC_WRAPPER").unwrap_or("".to_string());
-    // println!("cargo:debug=rustc_wrapper={:?}", rustc_wrapper);
-    // // make sure it works both for ccache and sccache
-    // // NOTE: if not ccache/sccache we ignore it and do nothing; eg it could by a custom rustc_wrapper.sh
-    // // TODO? handle distcc the same way?
-    // if rustc_wrapper.contains("ccache") {
-    //     println!("cargo:info=rustc_wrapper is ccache/sccache");
-    //     cmake_config.configure_arg(format!("-DCMAKE_CXX_COMPILER_LAUNCHER={}", rustc_wrapper));
-    //     cmake_config.configure_arg(format!("-DCMAKE_C_COMPILER_LAUNCHER={}", rustc_wrapper));
-    // }
-    //
-    // cf https://github.com/Interstellar-Network/gh-actions/blob/main/prepare/action.yml
-    let env_cxx_compiler_launcher =
-        std::env::var("ENV_CMAKE_CXX_COMPILER_LAUNCHER").unwrap_or("".to_string());
-    // TODO remove println!
-    println!(
-        "cargo:warning=env_cxx_compiler_launcher: {}",
-        env_cxx_compiler_launcher
-    );
-    if env_cxx_compiler_launcher.contains("ccache") {
-        // TODO remove println!
-        println!("cargo:warning=env_c_compiler_launcher is ccache/sccache");
-        cmake_config.configure_arg(format!(
-            "-DCMAKE_CXX_COMPILER_LAUNCHER={}",
-            env_cxx_compiler_launcher
-        ));
-    }
-    let env_c_compiler_launcher =
-        std::env::var("ENV_CMAKE_C_COMPILER_LAUNCHER").unwrap_or("".to_string());
-    // TODO remove println!
-    println!(
-        "cargo:warning=env_c_compiler_launcher: {}",
-        env_c_compiler_launcher
-    );
-    if env_c_compiler_launcher.contains("ccache") {
-        // TODO remove println!
-        println!("cargo:warning=env_c_compiler_launcher is ccache/sccache");
-        cmake_config.configure_arg(format!(
-            "-DCMAKE_C_COMPILER_LAUNCHER={}",
-            env_c_compiler_launcher
-        ));
-    }
-
     let rust_wrapper = cmake_config.build();
 
     // rust_wrapper.display() = /home/.../api_circuits/target/debug/build/lib-circuits-wrapper-XXX/out

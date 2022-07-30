@@ -1,6 +1,6 @@
 ################################################################################
 
-# podman build -f Dockerfile -t api_circuits:dev --volume ~/.cargo:/root/.cargo:rw --volume $(pwd)/target/release:/usr/src/app/target/release:rw .
+# podman build -f Dockerfile -t api_circuits:dev -t ghcr.io/interstellar-network/api_circuits:dev --volume ~/.cargo:/root/.cargo:rw --volume $(pwd)/target/release:/usr/src/app/target/release:rw .
 # NOTE: it CAN work with Docker but it less than ideal b/c it can not reuse the host's cache
 # NOTE: when dev/test: if you get "ninja: error: loading 'build.ninja': No such file or directory"
 # -> FIX: find target/release/ -type d -name "*-wrapper-*" -exec rm -rf {} \;
@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install -y \
     rm ./yosys.deb ./abc.deb
 
 COPY . .
-RUN cargo install --path .
+# MUST use "--locked" else Cargo.lock is ignored
+RUN cargo install --locked --path .
 
 # MUST also get all the shared libs; using the CMake generated list of libs
 # cf https://github.com/Interstellar-Network/cmake/blob/main/export_libs.cmake

@@ -26,7 +26,11 @@ struct Args {
     bind_addr_port: String,
 
     /// Where to reach the IPFS node
-    #[clap(long, default_value = "/ip4/127.0.0.1/tcp/5001")]
+    #[clap(
+        long,
+        default_value = "/ip4/127.0.0.1/tcp/5001",
+        env = "IPFS_SERVER_MULTIADDR"
+    )]
     ipfs_server_multiaddr: String,
 }
 

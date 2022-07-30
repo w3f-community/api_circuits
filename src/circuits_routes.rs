@@ -25,6 +25,7 @@ use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
+    SkcdServerMetadata,
 };
 
 pub mod interstellarpbapicircuits {
@@ -68,30 +69,27 @@ impl SkcdApi for SkcdApiServerImpl {
         );
         let width = request.get_ref().width;
         let height = request.get_ref().height;
+        let digits_bboxes = request.get_ref().digits_bboxes.clone();
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
             let wrapper = lib_circuits_wrapper::ffi::new_circuit_gen_wrapper();
-
-            let digits_bboxes = vec![
-                // first digit bbox --------------------------------------------
-                0.25_f32, 0.1_f32, 0.45_f32, 0.9_f32,
-                // second digit bbox -------------------------------------------
-                0.55_f32, 0.1_f32, 0.75_f32, 0.9_f32,
-            ];
 
             wrapper.GenerateDisplaySkcd(width, height, &digits_bboxes)
         })
         .await
         .unwrap();
 
-        let data = Cursor::new(lib_circuits_wrapper);
+        let data = Cursor::new(lib_circuits_wrapper.skcd_buffer);
 
         // TODO error handling, or at least logging
         let ipfs_result = self.ipfs_client().add(data).await.unwrap();
 
         let reply = SkcdDisplayReply {
             skcd_cid: ipfs_result.hash,
+            server_metadata: Some(SkcdServerMetadata {
+                nb_digits: lib_circuits_wrapper.skcd_config_nb_digits,
+            }),
         };
 
         Ok(Response::new(reply))
