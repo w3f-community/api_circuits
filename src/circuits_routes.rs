@@ -28,6 +28,8 @@ use interstellarpbapicircuits::{
     SkcdServerMetadata,
 };
 
+// https://github.com/neoeinstein/protoc-gen-prost/issues/26
+#[allow(clippy::derive_partial_eq_without_eq)]
 pub mod interstellarpbapicircuits {
     tonic::include_proto!("interstellarpbapicircuits");
 }
