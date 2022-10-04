@@ -22,6 +22,21 @@ jobs:
           wget https://github.com/Interstellar-Network/abc/releases/download/0.0.1/abc-0.1.1-Linux.deb -O abc.deb
           sudo apt-get install -y --no-install-recommends ./abc.deb
 
+      ##########################################################################
+      # NOTE "protoc-VERSION-HOST.zip"(contains protoc itself)
+      # and "protobuf-cpp-VERSION.tar.gz" contains the source code for eg "src/google/protobuf/port_def.inc"
+      # What we download in CI, and what shared/rust/circuit_evaluate/build.rs expects SHOULD MATCH!
+      # DO NOT change the structure, else build.rs will fail!
+      - name: Install protoc custom prebuilt binary
+        run: |
+          mkdir /home/runner/protoc
+          cd /home/runner/protoc
+          wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protoc-21.7-linux-x86_64.zip -O prebuilt.zip
+          unzip prebuilt.zip
+          rm prebuilt.zip
+          echo "PROTOC=/home/runner/protoc/bin/protoc" >> $GITHUB_ENV
+        shell: bash
+
       - uses: Interstellar-Network/gh-actions/prepare@v1.0.0
         with:
           ssh_key_input: ${{ secrets.SSH_KEY_MACHINE_USER_INTERSTELLAR_CI }}

@@ -1,13 +1,17 @@
 ################################################################################
 
-# podman build -f Dockerfile -t api_circuits:dev -t ghcr.io/interstellar-network/api_circuits:dev --volume ~/.cargo:/root/.cargo:rw --volume $(pwd)/target/release:/usr/src/app/target/release:rw .
+# podman build -f Dockerfile -t ghcr.io/interstellar-network/api_circuits:dev --volume ~/.cargo:/root/.cargo:rw --volume $(pwd)/target/release:/usr/src/app/target/release:rw .
 # NOTE: it CAN work with Docker but it less than ideal b/c it can not reuse the host's cache
 # NOTE: when dev/test: if you get "ninja: error: loading 'build.ninja': No such file or directory"
 # -> FIX: find target/release/ -type d -name "*-wrapper-*" -exec rm -rf {} \;
 # b/c docker build has no support for volume contrary to podman/buildah
 # docker run -it --name api_circuits --rm -p 3000:3000 --env RUST_LOG="warn,info,debug" api_circuits:dev /usr/local/bin/api_circuits --ipfs-server-multiaddr /ip4/172.17.0.1/tcp/5001
+#
+# to publish:
+# podman tag ghcr.io/interstellar-network/api_circuits:dev ghcr.io/interstellar-network/api_circuits:vXXX
+# podman push ghcr.io/interstellar-network/api_circuits:vXXX
 
-FROM ghcr.io/interstellar-network/ci-images/ci-base-rust:dev as builder
+FROM ghcr.io/interstellar-network/ci-images/ci-base-rust:v2 as builder
 
 WORKDIR /usr/src/app
 
@@ -24,6 +28,14 @@ RUN apt-get update && apt-get install -y \
     sudo apt-get install -y --no-install-recommends ./abc.deb && \
     rm -rf /var/lib/apt/lists/*  && \
     rm ./yosys.deb ./abc.deb
+
+# install protoc(using prebuilt binary)
+RUN mkdir -p /home/runner/protoc && \
+    cd /home/runner/protoc && \
+    wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protoc-21.7-linux-x86_64.zip -O prebuilt.zip && \
+    unzip prebuilt.zip && \
+    rm prebuilt.zip
+ENV PROTOC /home/runner/protoc/bin/protoc
 
 COPY . .
 # MUST use "--locked" else Cargo.lock is ignored
