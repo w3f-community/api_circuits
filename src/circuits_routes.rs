@@ -13,20 +13,20 @@
 // limitations under the License.
 
 use futures_util::TryStreamExt;
-use ipfs_api_backend_hyper::{
-    BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
-};
-use std::io::Cursor;
-use std::time::Duration;
-use tempfile::Builder;
-use tonic::{Request, Response, Status};
-
 use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
     SkcdServerMetadata,
 };
+use ipfs_api_backend_hyper::{
+    BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
+};
+use std::io::Cursor;
+use std::io::Write;
+use std::time::Duration;
+use tempfile::Builder;
+use tonic::{Request, Response, Status};
 
 // https://github.com/neoeinstein/protoc-gen-prost/issues/26
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -137,7 +137,10 @@ impl SkcdApi for SkcdApiServerImpl {
             .tempdir()
             .unwrap();
         let verilog_file_path = tmp_dir.path().join("input.v");
-        std::fs::write(&verilog_file_path, verilog_buf).expect("could not write");
+        let mut input_v_file = std::fs::File::create(&verilog_file_path)?;
+        input_v_file
+            .write_all(&verilog_buf)
+            .expect("could not write");
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
