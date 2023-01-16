@@ -17,19 +17,16 @@
 
 // TODO? use integration_tests::pb::{test_client, test_server, Input, Output};
 // use ipfs_embed::{Config, DefaultParams, Ipfs};
+use api_circuits::circuits_routes::{self, interstellarpbapicircuits::SkcdDisplayReply};
 use bytes::Buf;
 use bytes::BufMut;
 use ipfs_api_backend_hyper::IpfsApi;
-use ipfs_api_backend_hyper::TryFromUri;
 use prost::Message;
 use std::io::Cursor;
 use std::{net::SocketAddr, time::Duration};
+use tests_utils::foreign_ipfs;
 use tokio::net::TcpListener;
 use tonic::{transport::Server, Code, Request, Response, Status};
-
-use api_circuits::circuits_routes::{self, interstellarpbapicircuits::SkcdDisplayReply};
-
-mod foreign_ipfs;
 
 pub mod interstellarpbapicircuits {
     tonic::include_proto!("interstellarpbapicircuits");
@@ -37,7 +34,7 @@ pub mod interstellarpbapicircuits {
 
 #[tokio::test]
 async fn endpoint_generate_display_protobuf() {
-    let foreign_node = run_ipfs_in_background().await;
+    let (foreign_node, ipfs_client) = run_ipfs_in_background().await;
     let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
     let addr = run_service_in_background(
         Duration::from_secs(1),
@@ -64,8 +61,9 @@ async fn endpoint_generate_display_protobuf() {
         ],
     });
     req.metadata_mut()
-        // TODO less than 5000 ms!
-        .insert("grpc-timeout", "5000m".parse().unwrap());
+        // NOTE: since "Swanky refactor" our typical "display circuits" take 45-50s to generate locally
+        // but add some margin!
+        .insert("grpc-timeout", "120000m".parse().unwrap());
 
     let res = client.generate_skcd_display(req).await;
 
@@ -133,7 +131,7 @@ async fn decode_body(body: hyper::Body, content_type: &str) -> (SkcdDisplayReply
 //  cargo test -- --test-threads=1
 #[tokio::test]
 async fn endpoint_generate_display_grpc_web() {
-    let foreign_node = run_ipfs_in_background().await;
+    let (foreign_node, ipfs_client) = run_ipfs_in_background().await;
     let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
     let addr = run_service_in_background(
         Duration::from_secs(1),
@@ -175,7 +173,7 @@ async fn endpoint_generate_display_grpc_web() {
 
 #[tokio::test]
 async fn endpoint_generate_generic_protobuf() {
-    let foreign_node = run_ipfs_in_background().await;
+    let (foreign_node, ipfs_client) = run_ipfs_in_background().await;
     let ipfs_server_multiaddr = format!("/ip4/127.0.0.1/tcp/{}", foreign_node.api_port);
     let addr = run_service_in_background(
         Duration::from_secs(1),
@@ -189,8 +187,6 @@ async fn endpoint_generate_generic_protobuf() {
     // let verilog_data = std::fs::read("./tests/data/adder.v").unwrap();
 
     // insert a basic Verilog (.v) in IPFS
-    let ipfs_client =
-        ipfs_api_backend_hyper::IpfsClient::from_multiaddr_str(&ipfs_server_multiaddr).unwrap();
     let verilog_cursor = Cursor::new(verilog_data);
     // "ApiError { message: "Invalid byte while expecting start of value: 0x2f", code: 0 }"
     // let ipfs_result = ipfs_client.dag_put(verilog_cursor).await.unwrap();
@@ -261,22 +257,9 @@ async fn run_service_in_background(
 }
 
 // https://github.com/ipfs-rust/ipfs-embed/#getting-started
-async fn run_ipfs_in_background() -> foreign_ipfs::ForeignNode {
-    // let cache_size = 10;
-    // let ipfs = Ipfs::<DefaultParams>::new(Config::default()).await.unwrap();
-    // ipfs.listen_on("/ip4/127.0.0.1/tcp/0".parse().unwrap());
-
-    // tokio::spawn(async move {
-
-    // });
-
-    // https://github.com/rs-ipfs/rust-ipfs/blob/master/tests/pubsub.rs
-    let foreign_node = foreign_ipfs::ForeignNode::new();
-    let foreign_api_port = foreign_node.api_port;
-    println!("run_ipfs_in_background: port: {}", foreign_api_port);
-
-    // MUST be returned and kept alive; else the daemon is killed
-    foreign_node
-
-    // ALTERNATIVE: https://docs.ipfs.io/install/ipfs-desktop/#ubuntu
+async fn run_ipfs_in_background() -> (
+    foreign_ipfs::ForeignNode,
+    ipfs_api_backend_hyper::IpfsClient,
+) {
+    foreign_ipfs::run_ipfs_in_background(None)
 }

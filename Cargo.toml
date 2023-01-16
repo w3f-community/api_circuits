@@ -38,7 +38,7 @@ clap = { version = "4", features = ["derive", "env"] }
 # "the trait `Send` is not implemented for `dyn Future<Output = Result<AddResponse, ipfs_api_backend_hyper::Error>>`"
 # https://github.com/ferristseng/rust-ipfs-api/issues/90
 # ipfs-api-backend-hyper = "0.3"
-ipfs-api-backend-hyper = { version = "0.5", features = [ "with-send-sync" , "with-builder" ] }
+ipfs-api-backend-hyper = { version = ">0.5", features = [ "with-send-sync" , "with-builder" ] }
 
 lib-circuits-wrapper = { path = "lib_circuits_wrapper/" }
 
@@ -46,15 +46,9 @@ lib-circuits-wrapper = { path = "lib_circuits_wrapper/" }
 tonic-build = "0.8"
 
 [dev-dependencies]
+tests-utils = { git = "https://github.com/Interstellar-Network/pallets", branch = "interstellar-M5" }
+
 hyper = "0.14"
 bytes = "^1.2.0"
-# cf https://github.com/rs-ipfs/rust-ipfs/blob/master/Cargo.toml
-# Needed for tests/foreign_ipfs.rs
-libp2p = { default-features = false, features = ["floodsub", "identify", "kad", "tcp-tokio", "mplex", "noise", "ping", "yamux", "dns-tokio"], version = "0.48" }
+tokio-stream = { version = "0.1", features = ["net"] }
 base64 = { default-features = false, features = ["alloc"], version = "0.13" }
-anyhow = "1.0"
-
-# add "net", needed for tests to use "tokio_stream::wrappers::TcpListenerStream"
-[dev-dependencies.tokio-stream]
-version = "0.1"
-features = ["net"]
