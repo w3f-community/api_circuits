@@ -17,9 +17,9 @@ jobs:
       - name: install "internal" dependencies
         # MUST match /lib_circuits/.github/workflows/cpp.yml
         run: |
-          wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.15-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb
+          wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.23-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb
           sudo apt-get install -y --no-install-recommends ./yosys.deb
-          wget https://github.com/Interstellar-Network/abc/releases/download/0.0.1/abc-0.1.1-Linux.deb -O abc.deb
+          wget https://github.com/Interstellar-Network/abc/releases/download/0.2.0/abc-0.1.1-Linux.deb -O abc.deb
           sudo apt-get install -y --no-install-recommends ./abc.deb
 
       ##########################################################################
@@ -27,25 +27,27 @@ jobs:
       # and "protobuf-cpp-VERSION.tar.gz" contains the source code for eg "src/google/protobuf/port_def.inc"
       # What we download in CI, and what shared/rust/circuit_evaluate/build.rs expects SHOULD MATCH!
       # DO NOT change the structure, else build.rs will fail!
+      #
+      # Needed for at least libp2p
       - name: Install protoc custom prebuilt binary
         run: |
           mkdir /home/runner/protoc
           cd /home/runner/protoc
-          wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protoc-21.7-linux-x86_64.zip -O prebuilt.zip
+          wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip -O prebuilt.zip
           unzip prebuilt.zip
           rm prebuilt.zip
           echo "PROTOC=/home/runner/protoc/bin/protoc" >> $GITHUB_ENV
         shell: bash
 
-      - uses: Interstellar-Network/gh-actions/prepare@v1.0.0
+      - uses: Interstellar-Network/gh-actions/prepare@v2
         with:
           ssh_key_input: ${{ secrets.SSH_KEY_MACHINE_USER_INTERSTELLAR_CI }}
           install_cmake_and_ninja: true
 
-      - uses: Interstellar-Network/gh-actions/prepare_rust@v1.0.0
+      - uses: Interstellar-Network/gh-actions/prepare_rust@v2
 
-      - uses: Interstellar-Network/gh-actions/rust-lint@v1.0.0
+      - uses: Interstellar-Network/gh-actions/rust-lint@v2
 
-      - uses: Interstellar-Network/gh-actions/install-go-ipfs@v1.0.0
+      - uses: Interstellar-Network/gh-actions/install-go-ipfs@v2
 
-      - uses: Interstellar-Network/gh-actions/rust-build-and-test@v1.0.0
+      - uses: Interstellar-Network/gh-actions/rust-build-and-test@v2

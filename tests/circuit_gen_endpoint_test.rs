@@ -27,6 +27,7 @@ use std::{net::SocketAddr, time::Duration};
 use tests_utils::foreign_ipfs;
 use tokio::net::TcpListener;
 use tonic::{transport::Server, Code, Request, Response, Status};
+use tonic_web::GrpcWebLayer;
 
 pub mod interstellarpbapicircuits {
     tonic::include_proto!("interstellarpbapicircuits");
@@ -232,16 +233,13 @@ async fn run_service_in_background(
         circuits_routes::interstellarpbapicircuits::skcd_api_server::SkcdApiServer::new(
             circuits_api,
         );
-    // let greeter = InterstellarCircuitsApiClient::new(greeter);
-    let circuits_api = tonic_web::config()
-        .allow_origins(vec!["127.0.0.1"])
-        .enable(circuits_api);
 
     println!("GreeterServer listening on {}", addr);
 
     tokio::spawn(async move {
         Server::builder()
             .accept_http1(true)
+            .layer(GrpcWebLayer::new())
             .add_service(circuits_api)
             // .serve(addr) // NO!
             // thread 'cancelation_on_timeout' panicked at 'called `Result::unwrap()` on an `Err`
