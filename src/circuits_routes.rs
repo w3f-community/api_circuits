@@ -137,10 +137,15 @@ impl SkcdApi for SkcdApiServerImpl {
             .tempdir()
             .unwrap();
         let verilog_file_path = tmp_dir.path().join("input.v");
-        let mut input_v_file = std::fs::File::create(&verilog_file_path)?;
-        input_v_file
-            .write_all(&verilog_buf)
-            .expect("could not write");
+        {
+            // MUST drop the file else we get sporadic
+            // Entered genlib library with 16 gates from file "/home/xxx/Documents/interstellar/api_circuits/lib_circuits_wrapper/deps/lib_circuits/data/verilog/skcd.genlib".
+            // E20230117 13:07:41.909034 26231 verilog_compiler.cpp:59] FilterErrorStreamBuf : Error : ERROR: Can't open input file `/tmp/interstellar-circuit_routes-generate_skcd_generic_from_ipfsQtXDxw/input.v' for reading: No such file or directory
+            let mut input_v_file = std::fs::File::create(&verilog_file_path)?;
+            input_v_file
+                .write_all(&verilog_buf)
+                .expect("could not write");
+        }
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
