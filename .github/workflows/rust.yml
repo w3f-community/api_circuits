@@ -23,31 +23,20 @@ jobs:
           sudo apt-get install -y --no-install-recommends ./abc.deb
 
       ##########################################################################
-      # NOTE "protoc-VERSION-HOST.zip"(contains protoc itself)
-      # and "protobuf-cpp-VERSION.tar.gz" contains the source code for eg "src/google/protobuf/port_def.inc"
-      # What we download in CI, and what shared/rust/circuit_evaluate/build.rs expects SHOULD MATCH!
-      # DO NOT change the structure, else build.rs will fail!
-      #
-      # Needed for at least libp2p
-      - name: Install protoc custom prebuilt binary
-        run: |
-          mkdir /home/runner/protoc
-          cd /home/runner/protoc
-          wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip -O prebuilt.zip
-          unzip prebuilt.zip
-          rm prebuilt.zip
-          echo "PROTOC=/home/runner/protoc/bin/protoc" >> $GITHUB_ENV
-        shell: bash
 
-      - uses: Interstellar-Network/gh-actions/prepare@v2
+      - uses: Interstellar-Network/gh-actions/install-protoc@v3-dev
+
+      - uses: Interstellar-Network/gh-actions/prepare@v3-dev
         with:
           ssh_key_input: ${{ secrets.SSH_KEY_MACHINE_USER_INTERSTELLAR_CI }}
           install_cmake_and_ninja: true
 
-      - uses: Interstellar-Network/gh-actions/prepare_rust@v2
+      - uses: Interstellar-Network/gh-actions/prepare_rust@v3-dev
+        with:
+          toolchain_components: "rustfmt,clippy"
 
-      - uses: Interstellar-Network/gh-actions/rust-lint@v2
+      - uses: Interstellar-Network/gh-actions/rust-lint@v3-dev
 
-      - uses: Interstellar-Network/gh-actions/install-go-ipfs@v2
+      - uses: Interstellar-Network/gh-actions/install-go-ipfs@v3-dev
 
-      - uses: Interstellar-Network/gh-actions/rust-build-and-test@v2
+      - uses: Interstellar-Network/gh-actions/rust-build-and-test@v3-dev

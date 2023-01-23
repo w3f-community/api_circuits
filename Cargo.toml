@@ -46,7 +46,7 @@ lib-circuits-wrapper = { path = "lib_circuits_wrapper/" }
 tonic-build = "0.8"
 
 [dev-dependencies]
-tests-utils = { git = "https://github.com/Interstellar-Network/pallets", branch = "interstellar-M5" }
+tests-utils = { git = "https://github.com/Interstellar-Network/rs-common.git", branch = "interstellar-M5" }
 
 hyper = "0.14"
 bytes = "^1.2.0"
