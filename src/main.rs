@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
     let addr = args.bind_addr_port.parse().unwrap();
-    println!("Server listening on {}", addr);
+    println!("Server listening on {addr}");
 
     Server::builder()
         .accept_http1(true)

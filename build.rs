@@ -26,5 +26,5 @@ fn main() {
             // includes
             &["deps/protos"],
         )
-        .unwrap_or_else(|e| panic!("Failed to compile protos {:?}", e));
+        .unwrap_or_else(|e| panic!("Failed to compile protos {e:?}"));
 }
