@@ -17,7 +17,6 @@ use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
-    SkcdServerMetadata,
 };
 use ipfs_api_backend_hyper::{
     BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
@@ -99,11 +98,6 @@ impl SkcdApi for SkcdApiServerImpl {
 
         let reply = SkcdDisplayReply {
             skcd_cid: ipfs_result.hash,
-            server_metadata: Some(SkcdServerMetadata {
-                // TODO remove this field; the old value was computed from "digits_bboxes"(ie digits_bboxes / 4)
-                // so there was no point in passing it from Request to Response
-                nb_digits: 0,
-            }),
         };
 
         Ok(Response::new(reply))
