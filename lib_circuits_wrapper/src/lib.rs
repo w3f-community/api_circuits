@@ -36,11 +36,6 @@ pub mod ffi {
 
     struct SkcdAndMetadata {
         skcd_buffer: Vec<u8>,
-        // NOTE: ideally we would map directy eg
-        // skcd_config: std::collections::HashMap<&str, u32>,
-        // but "std::collections::HashMap<&str, u32>,  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsupported type" for now
-        // So we map the field directly
-        skcd_config_nb_digits: u32,
     }
 
     unsafe extern "C++" {

@@ -14,6 +14,7 @@
 
 use clap::Parser;
 use tonic::transport::Server;
+use tonic_web::GrpcWebLayer;
 
 mod circuits_routes;
 
@@ -49,16 +50,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         circuits_routes::interstellarpbapicircuits::skcd_api_server::SkcdApiServer::new(
             circuits_api,
         );
-    // let greeter = InterstellarCircuitsApiClient::new(greeter);
-    let circuits_api = tonic_web::config()
-        .allow_origins(vec!["127.0.0.1"])
-        .enable(circuits_api);
 
     let addr = args.bind_addr_port.parse().unwrap();
-    println!("Server listening on {}", addr);
+    println!("Server listening on {addr}");
 
     Server::builder()
         .accept_http1(true)
+        .layer(GrpcWebLayer::new())
         .add_service(circuits_api)
         .serve(addr)
         .await?;

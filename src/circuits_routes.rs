@@ -13,23 +13,28 @@
 // limitations under the License.
 
 use futures_util::TryStreamExt;
-use ipfs_api_backend_hyper::{
-    BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
-};
-use std::io::Cursor;
-use std::time::Duration;
-use tempfile::Builder;
-use tonic::{Request, Response, Status};
-
 use interstellarpbapicircuits::skcd_api_server::SkcdApi;
 pub use interstellarpbapicircuits::skcd_api_server::SkcdApiServer;
 use interstellarpbapicircuits::{
     SkcdDisplayReply, SkcdDisplayRequest, SkcdGenericFromIpfsReply, SkcdGenericFromIpfsRequest,
-    SkcdServerMetadata,
 };
+use ipfs_api_backend_hyper::{
+    BackendWithGlobalOptions, GlobalOptions, IpfsApi, IpfsClient, TryFromUri,
+};
+use std::io::Cursor;
+use std::io::Write;
+use std::time::Duration;
+use tempfile::Builder;
+use tonic::{Request, Response, Status};
 
 // https://github.com/neoeinstein/protoc-gen-prost/issues/26
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::missing_errors_doc)]
+#[allow(clippy::wildcard_imports)]
+#[allow(clippy::doc_markdown)]
+#[allow(clippy::similar_names)]
+#[allow(clippy::default_trait_access)]
 pub mod interstellarpbapicircuits {
     tonic::include_proto!("interstellarpbapicircuits");
 }
@@ -40,22 +45,22 @@ pub struct SkcdApiServerImpl {
 }
 
 trait HasIpfsClient {
-    fn ipfs_client(&self) -> BackendWithGlobalOptions<IpfsClient>;
+    fn ipfs_client(&self) -> Result<BackendWithGlobalOptions<IpfsClient>, Status>;
 }
 
 impl HasIpfsClient for SkcdApiServerImpl {
-    fn ipfs_client(&self) -> BackendWithGlobalOptions<IpfsClient> {
+    fn ipfs_client(&self) -> Result<BackendWithGlobalOptions<IpfsClient>, Status> {
         log::info!(
             "ipfs_client: starting with: {}",
             &self.ipfs_server_multiaddr
         );
-        BackendWithGlobalOptions::new(
+        Ok(BackendWithGlobalOptions::new(
             ipfs_api_backend_hyper::IpfsClient::from_multiaddr_str(&self.ipfs_server_multiaddr)
-                .unwrap(),
+                .map_err(|err| Status::invalid_argument(err.to_string()))?,
             GlobalOptions::builder()
                 .timeout(Duration::from_millis(5000))
                 .build(),
-        )
+        ))
     }
 }
 
@@ -80,18 +85,19 @@ impl SkcdApi for SkcdApiServerImpl {
             wrapper.GenerateDisplaySkcd(width, height, &digits_bboxes)
         })
         .await
-        .unwrap();
+        .map_err(|err| Status::internal(err.to_string()))?;
 
         let data = Cursor::new(lib_circuits_wrapper.skcd_buffer);
 
         // TODO error handling, or at least logging
-        let ipfs_result = self.ipfs_client().add(data).await.unwrap();
+        let ipfs_result = self
+            .ipfs_client()?
+            .add(data)
+            .await
+            .map_err(|err| Status::unavailable(err.to_string()))?;
 
         let reply = SkcdDisplayReply {
             skcd_cid: ipfs_result.hash,
-            server_metadata: Some(SkcdServerMetadata {
-                nb_digits: lib_circuits_wrapper.skcd_config_nb_digits,
-            }),
         };
 
         Ok(Response::new(reply))
@@ -120,12 +126,12 @@ impl SkcdApi for SkcdApiServerImpl {
         //     .await
         //     .unwrap();
         let verilog_buf = self
-            .ipfs_client()
+            .ipfs_client()?
             .cat(verilog_cid)
             .map_ok(|chunk| chunk.to_vec())
             .try_concat()
             .await
-            .unwrap();
+            .map_err(|err| Status::unavailable(err.to_string()))?;
 
         // write the buffer to a file in /tmp
         // yosys/abc REQUIRE file b/c they are basically cli
@@ -133,26 +139,43 @@ impl SkcdApi for SkcdApiServerImpl {
         let tmp_dir = Builder::new()
             .prefix("interstellar-circuit_routes-generate_skcd_generic_from_ipfs")
             .tempdir()
-            .unwrap();
+            .map_err(|err| Status::internal(err.to_string()))?;
         let verilog_file_path = tmp_dir.path().join("input.v");
-        std::fs::write(&verilog_file_path, verilog_buf).expect("could not write");
+        {
+            // MUST drop the file else we get sporadic
+            // Entered genlib library with 16 gates from file "/home/xxx/Documents/interstellar/api_circuits/lib_circuits_wrapper/deps/lib_circuits/data/verilog/skcd.genlib".
+            // E20230117 13:07:41.909034 26231 verilog_compiler.cpp:59] FilterErrorStreamBuf : Error : ERROR: Can't open input file `/tmp/interstellar-circuit_routes-generate_skcd_generic_from_ipfsQtXDxw/input.v' for reading: No such file or directory
+            let mut input_v_file = std::fs::File::create(&verilog_file_path)?;
+            input_v_file
+                .write_all(&verilog_buf)
+                .map_err(|err| Status::unavailable(err.to_string()))?;
+        }
 
         // TODO class member/Trait for "lib_circuits_wrapper::ffi::new_circuit_gen_wrapper()"
         let lib_circuits_wrapper = tokio::task::spawn_blocking(move || {
             let wrapper = lib_circuits_wrapper::ffi::new_circuit_gen_wrapper();
 
-            let skcd_pb_buf =
-                wrapper.GenerateGenericSkcd(verilog_file_path.as_os_str().to_str().unwrap());
+            let skcd_pb_buf = wrapper.GenerateGenericSkcd(
+                verilog_file_path
+                    .as_os_str()
+                    .to_str()
+                    .ok_or_else(|| Status::unavailable("as_os_str::to_str FAILED"))?,
+            );
 
-            skcd_pb_buf
+            Ok(skcd_pb_buf)
         })
         .await
-        .unwrap();
+        .map_err(|err| Status::internal(err.to_string()))?
+        .map_err(|err: Status| Status::internal(err.to_string()))?;
 
         let data = Cursor::new(lib_circuits_wrapper);
 
         // TODO error handling, or at least logging
-        let ipfs_result = self.ipfs_client().add(data).await.unwrap();
+        let ipfs_result = self
+            .ipfs_client()?
+            .add(data)
+            .await
+            .map_err(|err| Status::unavailable(err.to_string()))?;
 
         let reply = SkcdGenericFromIpfsReply {
             skcd_cid: ipfs_result.hash,

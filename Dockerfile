@@ -11,7 +11,7 @@
 # podman tag ghcr.io/interstellar-network/api_circuits:dev ghcr.io/interstellar-network/api_circuits:vXXX
 # podman push ghcr.io/interstellar-network/api_circuits:vXXX
 
-FROM ghcr.io/interstellar-network/ci-images/ci-base-rust:v2 as builder
+FROM ghcr.io/interstellar-network/ci-images/base-rust:v3 as builder
 
 WORKDIR /usr/src/app
 
@@ -22,9 +22,9 @@ RUN rustup component add rustfmt
 # cf .github/workflows/rust.yml "Install dependencies" and "install "internal" dependencies"
 RUN apt-get update && apt-get install -y \
     libboost-filesystem-dev && \
-    wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.15-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb && \
+    wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.23-interstellar/yosys-0.1.1-Linux.deb -O yosys.deb && \
     sudo apt-get install -y --no-install-recommends ./yosys.deb && \
-    wget https://github.com/Interstellar-Network/abc/releases/download/0.0.1/abc-0.1.1-Linux.deb -O abc.deb && \
+    wget https://github.com/Interstellar-Network/abc/releases/download/0.2.0/abc-0.1.1-Linux.deb -O abc.deb && \
     sudo apt-get install -y --no-install-recommends ./abc.deb && \
     rm -rf /var/lib/apt/lists/*  && \
     rm ./yosys.deb ./abc.deb
@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y \
 # install protoc(using prebuilt binary)
 RUN mkdir -p /home/runner/protoc && \
     cd /home/runner/protoc && \
-    wget https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protoc-21.7-linux-x86_64.zip -O prebuilt.zip && \
+    wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip -O prebuilt.zip && \
     unzip prebuilt.zip && \
     rm prebuilt.zip
 ENV PROTOC /home/runner/protoc/bin/protoc

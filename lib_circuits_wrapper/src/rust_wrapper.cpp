@@ -42,18 +42,16 @@ SkcdAndMetadata GenerateDisplaySkcdWrapper::GenerateDisplaySkcd(uint32_t width, 
     digits_bboxes_copy.emplace_back(digits_bboxes[i], digits_bboxes[i + 1],
                                     digits_bboxes[i + 2], digits_bboxes[i + 3]);
   }
-  std::unordered_map<std::string, uint32_t> skcd_config;
+
   auto buf_str = interstellar::circuits::GenerateDisplaySkcd(width, height,
                                                              interstellar::circuits::DisplayDigitType::seven_segments_png,
-                                                             std::move(digits_bboxes_copy),
-                                                             &skcd_config);
+                                                             std::move(digits_bboxes_copy));
 
   rust::Vec<u_int8_t> vec;
   std::copy(buf_str.begin(), buf_str.end(), std::back_inserter(vec));
 
   SkcdAndMetadata skcd_and_metadata;
   skcd_and_metadata.skcd_buffer = vec;
-  skcd_and_metadata.skcd_config_nb_digits = skcd_config.at("NB_DIGITS");
   return skcd_and_metadata;
 }
 

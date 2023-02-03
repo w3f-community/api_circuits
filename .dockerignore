@@ -10,4 +10,8 @@
 !/Cargo.toml
 !/src/
 !/deps/
-!/lib_circuits_wrapper/
+!/lib_circuits_wrapper/deps/
+!/lib_circuits_wrapper/src/
+!/lib_circuits_wrapper/build.rs
+!/lib_circuits_wrapper/Cargo.toml
+!/lib_circuits_wrapper/CMakeLists.txt
